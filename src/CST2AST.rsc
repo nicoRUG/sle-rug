@@ -22,12 +22,16 @@ AForm cst2ast(start[Form] sf) {
 }
 
 AQuestion cst2ast(Question q) {
+  switch(q) {
+    case (Question)`<Str _><Id x>:<Type t>`: return question(id("<x>", src=x@\loc), typ("<t>", src=t@\loc));
+    case (Question)`<Str _><Id x>:<Type t>"="<Expr expr>`: return computedQuestion(id("<x>", src=x@\loc), typ("<t>", src=t@\loc), expr("<expr>", src=expr@\loc));
+  }
   throw "Not yet implemented";
 }
 
 AExpr cst2ast(Expr e) {
   switch (e) {
-    case (Expr)`<Id x>`: return ref("<x>", src=x@\loc);
+    case (Expr)`<Id x>`: return ref(id("<x>", src=x@\loc), src=x@\loc);
     
     // etc.
     
