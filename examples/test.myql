@@ -10,23 +10,26 @@ form test {
   
   
   "Test ComputedQuestion 1"
-  test1String : boolean = true
+  test2Boolean1 : boolean = true
   
   "Test ComputedQuestion 2"
-  test1String : boolean = false
+  test2Boolean2 : boolean = false
   
   "Test ComputedQuestion 3"
-  test1String : integer = 0
-  
+  test2Integer1 : integer = 0
+    
   "Test ComputedQuestion 4"
-  test1String : integer = 1
+  test2Integer2 : integer = 1
   
   "Test ComputedQuestion 5"
-  test1String : integer = 123456789
+  test2Integer3 : integer = 123456789
   
   "Test ComputedQuestion 6"
-  test1String : integer = -1
+  test2Integer4 : integer = -1
   
   "Test ComputedQuestion 7"
-  test1String : integer = -123456789
+  test2Integer5 : integer = -123456789
+  
+  "Test ComputedQuestion 8"
+  test2String : string = "test string"
 }
