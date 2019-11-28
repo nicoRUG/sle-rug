@@ -1,0 +1,32 @@
+form test {
+  "Test Question 1"
+  test1Boolean : boolean
+  
+  "Test Question 2"
+  test1Integer : integer
+  
+  "Test Question 3"
+  test1String : string
+  
+  
+  "Test ComputedQuestion 1"
+  test1String : boolean = true
+  
+  "Test ComputedQuestion 2"
+  test1String : boolean = false
+  
+  "Test ComputedQuestion 3"
+  test1String : integer = 0
+  
+  "Test ComputedQuestion 4"
+  test1String : integer = 1
+  
+  "Test ComputedQuestion 5"
+  test1String : integer = 123456789
+  
+  "Test ComputedQuestion 6"
+  test1String : integer = -1
+  
+  "Test ComputedQuestion 7"
+  test1String : integer = -123456789
+}
