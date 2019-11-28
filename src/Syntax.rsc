@@ -51,12 +51,10 @@ syntax Type
   
 lexical Str = "\"" ![\"]* "\""; 
 
-lexical Int //allow negative
+lexical Int
   = zero: "0"
-  | nonZero: [1-9][0-9]*
+  | nonZero: "-"?[1-9][0-9]*
   ;
 
 lexical Bool = "true" | "false";
-
-
 
