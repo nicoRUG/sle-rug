@@ -32,4 +32,20 @@ form test {
   
   "Test ComputedQuestion 8"
   test2String : string = "test string"
+  
+  "Test ComputedQuestion 9"
+  test2Parenthesis1 : integer = (0)
+  
+  "Test ComputedQuestion 10"
+  test2Parenthesis2 : boolean = (true)
+  
+  "Test ComputedQuestion 11"
+  test2Not1 : boolean = !true
+  
+  "Test ComputedQuestion 12"
+  test2Mult1 : integer = 1 * 2
+  
+  "Test ComputedQuestion 13"
+  test2Mult2 : integer = 1 * 2 * 3
+  
 }
