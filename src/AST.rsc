@@ -27,6 +27,7 @@ data AExpr(loc src = |tmp:///|)
   | div(AExpr l, AExpr r)
   | add(AExpr l, AExpr r)
   | sub(AExpr l, AExpr r)
+  | lt(AExpr l, AExpr r)
   | lte(AExpr l, AExpr r)
   | gt(AExpr l, AExpr r)
   | gte(AExpr l, AExpr r)
@@ -34,7 +35,7 @@ data AExpr(loc src = |tmp:///|)
   | neq(AExpr l, AExpr r)
   | and(AExpr l, AExpr r)
   | or(AExpr l, AExpr r)
-  //like so??
+  //like so??, or without constructor?
   | string(str string)
   | integer(int integer)
   | boolean(bool boolean)
@@ -45,3 +46,4 @@ data AId(loc src = |tmp:///|)
 
 data AType(loc src = |tmp:///|)
   = typ(str name);
+  
