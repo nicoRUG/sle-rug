@@ -26,9 +26,20 @@ RefGraph resolve(AForm f) = <us, ds, us o ds>
   when Use us := uses(f), Def ds := defs(f);
 
 Use uses(AForm f) {
-  return {}; 
+  Use u = {};
+  visit(f){
+    case ref(AId x) : u += {<x.src, x.name>};
+    // do nothing for the other cases of questions?
+  }
+  return u; 
 }
 
 Def defs(AForm f) {
-  return {}; 
+  Def d = {};
+  visit(f){
+    case question(AId x, _) : d += {<x.name, x.src>};
+    case computedQuestion(AId x, _, _) : d += {<x.name, x.src>};
+    // do nothing for the other cases of questions?
+ }
+ return d; 
 }
