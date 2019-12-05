@@ -55,8 +55,8 @@ AExpr cst2ast(Expr e) {
     case (Expr)`<Expr l>||<Expr r>`: return or(cst2ast(l), cst2ast(r), src=e@\loc);
     case (Expr)`true`: return boolean(true, src=e@\loc);
     case (Expr)`false`: return boolean(false, src=e@\loc);
-    case (Expr) Int: return integer(0, src=e@\loc); //TODO Expr to int (0 as a place holder for now, so we can compile)
-    case (Expr)Str: return string("<e>", src=e@\loc); //TODO: remove quotest#
+    case (Expr)`<Int i>`: return integer(toInt("<e>"), src=e@\loc);
+    case (Expr)`<Str s>`: return string("<e>"[1..-1], src=e@\loc);
     default: throw "Unhandled expression: <e>";
   }
 }
