@@ -37,8 +37,8 @@ Use uses(AForm f) {
 Def defs(AForm f) {
   Def d = {};
   visit(f){
-    case question(AId x, _) : d += {<x.name, x.src>};
-    case computedQuestion(AId x, _, _) : d += {<x.name, x.src>};
+    case question(AId x, _, _) : d += {<x.name, x.src>};
+    case computedQuestion(AId x, _, _, _) : d += {<x.name, x.src>};
     // do nothing for the other cases of questions?
  }
  return d; 
