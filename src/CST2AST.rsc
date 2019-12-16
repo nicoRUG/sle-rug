@@ -27,8 +27,8 @@ AForm cst2ast(start[Form] sf) {
 
 AQuestion cst2ast(Question q) {
   switch (q) {
-    case (Question)`<Str _><Id x>:<Type t>`: return question(id("<x>", src=x@\loc), cst2ast(t), src=q@\loc);
-    case (Question)`<Str _><Id x>:<Type t>=<Expr expr>`: return computedQuestion(id("<x>", src=x@\loc), cst2ast(t), cst2ast(expr), src=q@\loc);
+    case (Question)`<Str l><Id x>:<Type t>`: return question(id("<x>", src=x@\loc), "<l>"[1..-1], cst2ast(t), src=q@\loc);
+    case (Question)`<Str l><Id x>:<Type t>=<Expr expr>`: return computedQuestion(id("<x>", src=x@\loc), "<l>"[1..-1], cst2ast(t), cst2ast(expr), src=q@\loc);
     case (Question)`{<Question* qu>}`: return block([cst2ast(i) | i <- qu], src=q@\loc);
     case (Question)`if(<Expr cond>)<Question ifTrue>else<Question ifFalse>`: return ifThenElse(cst2ast(cond), cst2ast(ifTrue), cst2ast(ifFalse), src=q@\loc);
     case (Question)`if(<Expr cond>)<Question ifTrue>`: return ifThen(cst2ast(cond), cst2ast(ifTrue), src=q@\loc);
