@@ -25,20 +25,23 @@ data Input
   = input(str question, Value \value);
   
 // produce an environment which for each question has a default value
-// (e.g. 0 for int, "" for str etc.)
+// choice of default values in defaultValue()
 VEnv initialEnv(AForm f) {
-// TODOOOOOOOO
-  VEnv env = ();
-  visit(f.questions){
-    case question(AId _, str label, AType t, src = _) : env += (label:defaultValue(t));
-    case computedQuestion(AId _, str label, AType t, AExpr _, src = _) : env += (label:defaultValue(t)); 
+  //initialise environment with default values
+  VEnv venv = ();
+  for(q <- f.questions){ //TODO: do we need this for loop?
+    visit(q){
+      case question(AId _, str label, AType t, src = _) : env += (label:defaultValue(t));
+      case computedQuestion(AId _, str label, AType t, AExpr _, src = _) : env += (label:defaultValue(t)); 
+    }
   }
   return env;
 }
 
 Value defaultValue(AType t){
   switch(t){
-   case typ("integer") : return vint(0);
+   //use 1 as default value for ints to prevent Divison by Zero Exceptions caused by default values
+   case typ("integer") : return vint(1);
    case typ("string") : return vstr("");
    case typ("boolean") : return vbool(false);
   }
@@ -56,23 +59,29 @@ VEnv eval(AForm f, Input inp, VEnv venv) {
 
 VEnv evalOnce(AForm f, Input inp, VEnv venv) {
   //input is single input for one question, right??? (TODO: clear this)
-  //reevaluate every question
-  //TODO
-  visit(f){
-    case AQuestion q: eval(q, inp, venv);
-  }
-  return (); 
+  //note that the environment will only be updated AFTER each question was evaluated
+  return (venv | it + eval(q, inp, venv) | q <- f.questions);
 }
 
+//passed tests:
+//eval(question(id("i"), "l", typ("string")), input("l",vstr("test")), ());
+//eval(computedQuestion(id("i"), "l", typ("integer"), mult(integer(2),integer(4))), input("l",vint(1)), ());
 VEnv eval(AQuestion q, Input inp, VEnv venv) {
   // evaluate conditions for branching,
   // evaluate inp and computed questions to return updated VEnv
-  //TODO
-  VEnv env = venv;
   switch(q){
-    case question(AId _, str _, AType _) : ; //TODO: also use input
-    case computedQuestion(AId _, str _, AType _, AExpr expr) : env += eval(expr, venv);
-    case block(list[AQuestion] questions): return (() | it + eval(q) | q <-questions);
+    
+    case question(AId _, str label, AType _): {
+      if(input(label, val) := inp){ //TODO: check this: label is fixed, val is free
+        return venv + (label:val);  //TODO: this could be one level higher as well
+      }
+      return venv;
+    }
+    
+    case computedQuestion(AId _, str label, AType _, AExpr expr) : return venv + (label:eval(expr, venv));
+    
+    case block(list[AQuestion] questions): return (() | it + eval(q, inp, venv) | q <-questions);
+    
     case ifThenElse(AExpr cond, AQustion ifTrue, AQuestion ifFalse):{
       if(eval(cond) == vbool(true)){
         return venv + eval(ifTrue, inp, venv);
@@ -80,15 +89,16 @@ VEnv eval(AQuestion q, Input inp, VEnv venv) {
         return venv + eval(ifFalse, inp, venv);
       }
     }
+    
     case ifThen(AExpr cond, AQustion ifTrue):{
       if(eval(cond) == vbool(true)){
         return venv + eval(ifTrue, inp, venv);
       }
       return venv;
     }
-    default: assert false : "unmatched question";
+    
+    default: assert false : "unmatched question <q>";
   }
-  return ();
 }
 
 //TODO: refactor code if possible
@@ -109,7 +119,11 @@ Value eval(AExpr e, VEnv venv) {
     case div(AExpr l, AExpr r):{
       vint(lval) = eval(l, venv);
       vint(rval) = eval(r, venv);
-      return vint(lval/rval); //what to do about division by zero
+      //Check for division by zero
+      if(rval == vint(0)){
+        throw "Division by zero at <r.src>";
+      }
+      return vint(lval/rval);
     }
     case add(AExpr l, AExpr r):{
       vint(lval) = eval(l, venv);
@@ -152,8 +166,8 @@ Value eval(AExpr e, VEnv venv) {
       return vbool(lval!=rval);
     }
     case string(str s): return vstr(s);
-    case integer(int i): return vstr(i);
-    case boolen(bool b): return vstr(b);
+    case integer(int i): return vint(i);
+    case boolen(bool b): return vbool(b);
     
     default: throw "Unsupported expression <e>";
   }
