@@ -3,6 +3,7 @@ module Check
 import AST;
 import Resolve;
 import Message; // see standard library
+import IO; //TOOD: can be removed?
 
 data Type
   = tint()
@@ -17,18 +18,39 @@ alias TEnv = rel[loc def, str name, str label, Type \type];
 // To avoid recursively traversing the form, use the `visit` construct
 // or deep match (e.g., `for (/question(...) := f) {...}` ) 
 TEnv collect(AForm f) {
-  return {}; 
+  c = {};
+  visit(f){
+    case question(AId x, str label, AType t, src = loc _) : c += <x.src, "<x.name>", label, matchTypes(t)>;
+    case computedQuestion(AId x, str label, AType t, AExpr expr, src = loc _) : c += <x.src, "<x.name>", label, matchTypes(t)>;
+     }
+  return c; 
 }
 
 set[Message] check(AForm f, TEnv tenv, UseDef useDef) {
-  return {}; 
+  s = {};
+  for (i <- f.questions) {
+    s += check(i, tenv, useDef);
+  }
+  return s;
 }
 
 // - produce an error if there are declared questions with the same name but different types.
 // - duplicate labels should trigger a warning 
 // - the declared type computed questions should match the type of the expression.
 set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
-  return {}; 
+  m = {};
+  for(e <- tenv<name,\type, label>){
+    if (("<q.id>" == e.name) && (matchTypes(q.typ) != e.\type)){
+      m += error("multiple questions with same name but different type", q.src);
+    }
+    if (q.label == e.label && "<q.id.name>" != e.name){
+      m += warning("duplicate labels", q.src);
+    }
+  }
+  if (computedQuestion(_,_,_,_) := q && (typeOf(q.expr, tenv, useDef) != matchTypes(q.typ))){
+      m += error("types dont match: TypeOf: <typeOf(q.expr, tenv, useDef)>,  q.typ: <matchTypes(q.typ)>", q.src);
+  }
+  return m; 
 }
 
 // Check operand compatibility with operators.
@@ -38,10 +60,22 @@ set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
   set[Message] msgs = {};
   
   switch (e) {
-    case ref(str x, src = loc u):
-      msgs += { error("Undeclared question", u) | useDef[u] == {} };
-
-    // etc.
+    case ref(AId x):
+      msgs += { error("Undeclared question", x.src) | useDef[x.src] == {} };
+    case not(AExpr expr, src = loc u) : if (typeOf(expr, tenv, useDef) != tbool()) msgs += error("not requires boolean", u);
+    case mult(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("mult requires int", u);
+    case div(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("div requires int", u);
+    case add(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("add requires int", u);
+    case sub(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("sub requires int", u);
+    case lt(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("lt requires int", u);
+    case lte(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("lte requires int", u);
+    case gt(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("gt requires int", u);
+    case gte(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("gte requires int", u);
+    case eq(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("eq requires int", u);
+    case neq(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint())) msgs += error("neq requires int", u);
+    case and(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tbool() && typeOf(r, tenv, useDef) == tbool())) msgs += error("and requires bool", u);
+    case or(AExpr l, AExpr r, src = loc u) : if (!(typeOf(l, tenv, useDef) == tbool() && typeOf(r, tenv, useDef) == tbool())) msgs += error("sub requires bool", u);
+    // dont have to check string, int and bool
   }
   
   return msgs; 
@@ -49,12 +83,30 @@ set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
 
 Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
   switch (e) {
-    case ref(str x, src = loc u):  
+    case ref(id(str x, src = loc u)):{ // print("<u>\n");
       if (<u, loc d> <- useDef, <d, x, _, Type t> <- tenv) {
         return t;
-      }
+      }}
+    case parenthesis(AExpr expr, src = _) : return typeOf(expr, tenv, useDef);
+    case not(AExpr expr, src = _) : return typeOf(expr, tenv, useDef) == tbool() ? tbool() : tunknown();
+    case mult(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tint() : tunknown();
+    case div(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tint() : tunknown();
+    case add(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tint() : tunknown();
+    case sub(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tint() : tunknown();
+    case lt(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tbool() : tunknown();
+    case lte(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tbool() : tunknown();
+    case gt(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tbool() : tunknown();
+    case gte(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tbool() : tunknown();
+    case eq(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tbool() : tunknown();
+    case neq(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tint() && typeOf(r, tenv, useDef) == tint() ? tbool() : tunknown();
+    case and(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tbool() && typeOf(r, tenv, useDef) == tbool() ? tbool() : tunknown();
+    case or(AExpr l, AExpr r, src = _) : return typeOf(l, tenv, useDef) == tbool() && typeOf(r, tenv, useDef) == tbool() ? tbool() : tunknown();
+    case string(str _, src = _) : return tstr();
+    case integer(int _, src = _) : return tint();
+    case boolean(bool _, src = _) : return tbool();
     // etc.
   }
+  println("<e>");
   return tunknown(); 
 }
 
@@ -70,5 +122,12 @@ Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
  *
  */
  
- 
+ \Type matchTypes(AType t){
+   switch(t){
+     case typ("integer", src = _) : return tint();
+     case typ("string", src =_) : return tstr();
+     case typ("boolean", src = _) : return tbool();
+     default : return tunknown();
+   }
+ }
 
