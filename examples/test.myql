@@ -47,5 +47,9 @@ form test {
   
   "Test ComputedQuestion 13"
   test2Mult2 : integer = 1 * 2 * 3
+ 
+ "Test ComputedQuestion 14"
+  testlong : boolean = test2Integer2 * 2 + test2Integer4 < test2Mult2
+ 
   
 }
