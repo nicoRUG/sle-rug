@@ -12,8 +12,8 @@ data AForm(loc src = |tmp:///|)
   ; 
 
 data AQuestion(loc src = |tmp:///|)
-  = question(AId id, AType typ)
-  | computedQuestion(AId id, AType typ, AExpr expr)
+  = question(AId id, str label, AType typ)
+  | computedQuestion(AId id, str label, AType typ, AExpr expr)
   | block(list[AQuestion] questions)
   | ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse)
   | ifThen(AExpr cond, AQuestion ifTrue)
