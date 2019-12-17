@@ -31,11 +31,11 @@ VEnv initialEnv(AForm f) {
   VEnv venv = ();
   for(q <- f.questions){ //TODO: do we need this for loop?
     visit(q){
-      case question(AId _, str label, AType t, src = _) : env += (label:defaultValue(t));
-      case computedQuestion(AId _, str label, AType t, AExpr _, src = _) : env += (label:defaultValue(t)); 
+      case question(AId id(str x), str _, AType t, src = _) : venv += (x:defaultValue(t));
+      case computedQuestion(AId id(str x), str _, AType t, AExpr _, src = _) : venv += (x:defaultValue(t)); 
     }
   }
-  return env;
+  return venv;
 }
 
 Value defaultValue(AType t){
@@ -71,14 +71,14 @@ VEnv eval(AQuestion q, Input inp, VEnv venv) {
   // evaluate inp and computed questions to return updated VEnv
   switch(q){
     
-    case question(AId _, str label, AType _): {
-      if(input(label, val) := inp){ //TODO: check this: label is fixed, val is free
-        return venv + (label:val);  //TODO: this could be one level higher as well
+    case question(id(str x), str _, AType _): {
+      if(input(x, val) := inp){ //TODO: check this: label is fixed, val is free
+        return venv + (x:val);  //TODO: this could be one level higher as well
       }
       return venv;
     }
     
-    case computedQuestion(AId _, str label, AType _, AExpr expr) : return venv + (label:eval(expr, venv));
+    case computedQuestion(id(str x), str _, AType _, AExpr expr) : return venv + (x:eval(expr, venv));
     
     case block(list[AQuestion] questions): return (() | it + eval(q, inp, venv) | q <-questions);
     
@@ -108,7 +108,8 @@ Value eval(AExpr e, VEnv venv) {
     case ref(id(str x)): return venv[x];
     case parenthesis(AExpr expr): return eval(expr, venv);
     case not(AExpr expr) : {
-      vbool(val) = eval(l, venv);
+      //TODO for all coming cases: how to correctly access val??
+      vbool(val) = eval(expr, venv);
       return vbool(!val);
     }
     case mult(AExpr l, AExpr r):{
@@ -167,7 +168,7 @@ Value eval(AExpr e, VEnv venv) {
     }
     case string(str s): return vstr(s);
     case integer(int i): return vint(i);
-    case boolen(bool b): return vbool(b);
+    case boolean(bool b): return vbool(b);
     
     default: throw "Unsupported expression <e>";
   }
