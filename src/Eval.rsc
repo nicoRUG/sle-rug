@@ -31,8 +31,8 @@ VEnv initialEnv(AForm f) {
   VEnv venv = ();
   for(q <- f.questions){ //TODO: do we need this for loop?
     visit(q){
-      case question(AId id(str x), str _, AType t, src = _) : venv += (x:defaultValue(t));
-      case computedQuestion(AId id(str x), str _, AType t, AExpr _, src = _) : venv += (x:defaultValue(t)); 
+      case question(id(str x), str _, AType t, src = _) : venv += (x:defaultValue(t));
+      case computedQuestion(id(str x), str _, AType t, AExpr _, src = _) : venv += (x:defaultValue(t)); 
     }
   }
   return venv;
