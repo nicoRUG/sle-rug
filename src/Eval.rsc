@@ -64,15 +64,15 @@ VEnv evalOnce(AForm f, Input inp, VEnv venv) {
 }
 
 //passed tests:
-//eval(question(id("i"), "l", typ("string")), input("l",vstr("test")), ());
-//eval(computedQuestion(id("i"), "l", typ("integer"), mult(integer(2),integer(4))), input("l",vint(1)), ());
+
 VEnv eval(AQuestion q, Input inp, VEnv venv) {
   // evaluate conditions for branching,
   // evaluate inp and computed questions to return updated VEnv
   switch(q){
     
     case question(id(str x), str _, AType _): {
-      if(input(x, val) := inp){ //TODO: check this: label is fixed, val is free
+    // if this is the question corresponding to the input, evaluate it
+      if(input(x, val) := inp){
         return venv + (x:val);  //TODO: this could be one level higher as well
       }
       return venv;
