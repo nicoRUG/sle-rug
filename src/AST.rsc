@@ -12,8 +12,8 @@ data AQuestion(loc src = |tmp:///|)
   = question        (AId id, str label, AType typ)
   | computedQuestion(AId id, str label, AType typ, AExpr expr)
   | block(list[AQuestion] questions)
-  | ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse)
   | ifThen    (AExpr cond, AQuestion ifTrue)
+  | ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse)
   ; 
 
 data AExpr(loc src = |tmp:///|)
@@ -40,5 +40,6 @@ data AExpr(loc src = |tmp:///|)
 data AId(loc src = |tmp:///|)
   = id(str name);
 
+//TODO: check if this has to be changed to integer() | string() | boolean()
 data AType(loc src = |tmp:///|)
   = typ(str name);

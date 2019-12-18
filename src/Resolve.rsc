@@ -27,19 +27,19 @@ RefGraph resolve(AForm f) = <us, ds, us o ds>
 
 Use uses(AForm f) {
   Use u = {};
+  //visit all variable uses
   visit(f){
     case ref(AId x) : u += {<x.src, x.name>};
-    // do nothing for the other cases of questions?
   }
   return u; 
 }
 
 Def defs(AForm f) {
   Def d = {};
+  //visit all (computed)questions to find variable definitions
   visit(f){
     case question(AId x, _, _) : d += {<x.name, x.src>};
     case computedQuestion(AId x, _, _, _) : d += {<x.name, x.src>};
-    // do nothing for the other cases of questions?
  }
- return d; 
+ return d;
 }

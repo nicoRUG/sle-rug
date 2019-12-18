@@ -14,8 +14,8 @@ syntax Question
   = question:         Str Id ":" Type
   | computedQuestion: Str Id ":" Type "=" Expr
   | block:            "{" Question* "}"
-  | ifThenElse:       "if" "(" Expr ")" Question "else" Question
   | ifThen:           "if" "(" Expr ")" Question
+  | ifThenElse:       "if" "(" Expr ")" Question "else" Question
   ;
 
 // C/Java style precedence rules used for operator precedence
