@@ -10,7 +10,6 @@ extend lang::std::Id;
 start syntax Form 
   = "form" Id "{" Question* "}"; 
 
-// TODO: question, computed question, block, if-then-else, if-then
 syntax Question
   = question: Str Id ":" Type
   | computedQuestion: Str Id ":" Type "=" Expr
@@ -19,11 +18,12 @@ syntax Question
   | ifThen: "if" "(" Expr ")" Question
   ;
 
-// TODO: +, -, *, /, &&, ||, !, >, <, <=, >=, ==, !=, literals (bool, int, str)
-// Think about disambiguation using priorities and associativity
-// and use C/Java style precedence rules (look it up on the internet)
+// C/Java style precedence rules used for operator precedence
 syntax Expr 
   = Id \ "true" \ "false" // true/false are reserved keywords.
+  > Str
+  | Int
+  | Bool
   > parenthesis: "(" Expr ")"
   > not: "!" Expr
   > left (mult:  Expr "*" Expr
@@ -38,9 +38,6 @@ syntax Expr
   | neq: Expr "!=" Expr)
   > left and: Expr "&&" Expr
   > left or: Expr "||" Expr
-  > Str
-  | Int
-  | Bool
   ;
   
 syntax Type
@@ -57,4 +54,3 @@ lexical Int
   ;
 
 lexical Bool = "true" | "false";
-
