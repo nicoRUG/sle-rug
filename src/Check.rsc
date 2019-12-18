@@ -3,7 +3,10 @@ module Check
 import AST;
 import Resolve;
 import Message; // see standard library
-import IO; //TOOD: can be removed?
+
+/*
+ * Type Checker for QL
+ */
 
 data Type
   = tint()
@@ -15,24 +18,18 @@ data Type
 // the type environment consisting of defined questions in the form 
 alias TEnv = rel[loc def, str name, str label, Type \type];
 
-// To avoid recursively traversing the form, use the `visit` construct
-// or deep match (e.g., `for (/question(...) := f) {...}` ) 
+// return the type environment of the form 
 TEnv collect(AForm f) {
   c = {};
   visit(f){
-    case question(AId x, str label, AType t, src = loc _) : c += <x.src, "<x.name>", label, matchTypes(t)>;
+    case question        (AId x, str label, AType t,             src = loc _) : c += <x.src, "<x.name>", label, matchTypes(t)>;
     case computedQuestion(AId x, str label, AType t, AExpr expr, src = loc _) : c += <x.src, "<x.name>", label, matchTypes(t)>;
      }
   return c; 
 }
 
-set[Message] check(AForm f, TEnv tenv, UseDef useDef) {
-  s = {};
-  for (i <- f.questions) {
-    s += check(i, tenv, useDef);
-  }
-  return s;
-}
+//check the form for type correctness and return error messages
+set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv, useDef) | i <- f.questions);
 
 // - produce an error if there are declared questions with the same name but different types.
 // - duplicate labels should trigger a warning 
