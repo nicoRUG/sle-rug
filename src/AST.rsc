@@ -1,10 +1,7 @@
 module AST
 
 /*
- * Define Abstract Syntax for QL
- *
- * - complete the following data types
- * - make sure there is an almost one-to-one correspondence with the grammar
+ * Abstract Syntax for QL
  */
 
 data AForm(loc src = |tmp:///|)
@@ -21,6 +18,9 @@ data AQuestion(loc src = |tmp:///|)
 
 data AExpr(loc src = |tmp:///|)
   = ref(AId id)
+  | string(str string)
+  | integer(int integer)
+  | boolean(bool boolean)
   | parenthesis(AExpr expr)
   | not(AExpr expr)
   | mult(AExpr l, AExpr r)
@@ -35,10 +35,6 @@ data AExpr(loc src = |tmp:///|)
   | neq(AExpr l, AExpr r)
   | and(AExpr l, AExpr r)
   | or(AExpr l, AExpr r)
-  //like so??, or without constructor?
-  | string(str string)
-  | integer(int integer)
-  | boolean(bool boolean)
   ;
 
 data AId(loc src = |tmp:///|)
