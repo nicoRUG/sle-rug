@@ -11,11 +11,11 @@ start syntax Form
   = "form" Id "{" Question* "}"; 
 
 syntax Question
-  = question: Str Id ":" Type
+  = question:         Str Id ":" Type
   | computedQuestion: Str Id ":" Type "=" Expr
-  | block: "{" Question* "}"
-  | ifThenElse: "if" "(" Expr ")" Question "else" Question
-  | ifThen: "if" "(" Expr ")" Question
+  | block:            "{" Question* "}"
+  | ifThenElse:       "if" "(" Expr ")" Question "else" Question
+  | ifThen:           "if" "(" Expr ")" Question
   ;
 
 // C/Java style precedence rules used for operator precedence
@@ -24,32 +24,33 @@ syntax Expr
   > Str
   | Int
   | Bool
-  > parenthesis: "(" Expr ")"
-  > not: "!" Expr
-  > left (mult:  Expr "*" Expr
-  | div: Expr "/" Expr)
-  > left ( add: Expr "+" Expr
-  | sub: Expr "-" Expr)
-  > left (lt: Expr "\<" Expr
-  | lte: Expr "\<=" Expr 
-  | gt: Expr "\>" Expr
-  | gte: Expr "\>=" Expr)
-  > left (eq: Expr "==" Expr
-  | neq: Expr "!=" Expr)
-  > left and: Expr "&&" Expr
-  > left or: Expr "||" Expr
+  > parenthesis:  "(" Expr ")"
+  >        not:        "!" Expr
+  > left (mult: Expr  "*"  Expr
+  |        div: Expr  "/"  Expr)
+  > left ( add: Expr  "+"  Expr
+  |        sub: Expr  "-"  Expr)
+  > left (  lt: Expr "\<"  Expr
+  |        lte: Expr "\<=" Expr 
+  |         gt: Expr "\>"  Expr
+  |        gte: Expr "\>=" Expr)
+  > left (  eq: Expr "=="  Expr
+  |        neq: Expr "!="  Expr)
+  > left   and: Expr "&&"  Expr
+  > left    or: Expr "||"  Expr
   ;
-  
+
 syntax Type
   = "string"
   | "integer"
   | "boolean"
   ;  
-  
+
 lexical Str = "\"" ![\"]* "\""; 
 
+//integers can be negative whole numbers, no leading zeros
 lexical Int
-  = zero: "0"
+  = zero:    "0"
   | nonZero: "-"?[1-9][0-9]*
   ;
 
