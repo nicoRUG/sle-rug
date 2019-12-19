@@ -24,7 +24,37 @@ void compile(AForm f) {
 }
 
 HTML5Node form2html(AForm f) {
-  return html();
+//TODO: fix script string in
+  questions = div([question2html(x) | x <- f.questions]);
+
+  return html(
+           head(
+             title("<f.name>")), 
+           body(
+             div(
+               script(src("<f.name>.js")),
+               questions
+             )
+           )
+         );//div([question2html(q) | q <- f.questions])
+}
+
+HTML5Node question2html(AQuestion q){
+  switch(q){
+    //TODO: write function that depending on type, returns the corresponding html node
+    //TODO implement computed question like question, but make read only
+    //TODO implement ifThen/ifThenElse and make visible only if branch evaluates to true
+    case question        (AId id, str label, aint()):                return div(input(\type("number"),   \name("<id.name>")), "<label>");
+    case question        (AId id, str label, astr()):                return div(input(\type("text"),     \name("<id.name>")), "<label>");
+    case question        (AId id, str label, abool()):               return div(input(\type("checkbox"), \name("<id.name>")), "<label>");
+    //TODO: change
+    case computedQuestion(AId id, str label, AType typ, AExpr expr): return div(button("TODO"));
+    case block(list[AQuestion] qs): return div([question2html(qu) |qu <- qs]);
+    //TODO: make only one visible
+    case ifThen    (AExpr cond, AQuestion t)             : return div(question2html(t));
+    case ifThenElse(AExpr cond, AQuestion t, AQuestion f): return div(question2html(t), question2html(f));
+    default: throw "could not match question <q>";
+  }
 }
 
 str form2js(AForm f) {
