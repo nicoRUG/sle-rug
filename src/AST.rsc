@@ -42,4 +42,7 @@ data AId(loc src = |tmp:///|)
 
 //TODO: check if this has to be changed to integer() | string() | boolean()
 data AType(loc src = |tmp:///|)
-  = typ(str name);
+  = aint()
+  | astr()
+  | abool()
+  ;

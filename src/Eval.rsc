@@ -31,8 +31,8 @@ VEnv initialEnv(AForm f) {
   VEnv venv = ();
   for(q <- f.questions){ //TODO: do we need this for loop?
     visit(q){
-      case question(id(str x), str _, AType t, src = _) : venv += (x:defaultValue(t));
-      case computedQuestion(id(str x), str _, AType t, AExpr _, src = _) : venv += (x:defaultValue(t)); 
+      case question(AId x, str _, AType t) : venv += (x.name:defaultValue(t));
+      case computedQuestion(AId x, str _, AType t, AExpr _) : venv += (x.name:defaultValue(t)); 
     }
   }
   return venv;
@@ -41,9 +41,9 @@ VEnv initialEnv(AForm f) {
 Value defaultValue(AType t){
   switch(t){
    //use 1 as default value for ints to prevent Divison by Zero Exceptions caused by default values
-   case typ("integer") : return vint(1);
-   case typ("string") : return vstr("");
-   case typ("boolean") : return vbool(false);
+   case aint() : return vint(1);
+   case astr() : return vstr("");
+   case abool() : return vbool(false);
   }
   assert false : "invalid type";
 }
@@ -70,6 +70,7 @@ VEnv eval(AQuestion q, Input inp, VEnv venv) {
   // evaluate inp and computed questions to return updated VEnv
   switch(q){
     
+    //TODO: use x.name
     case question(id(str x), str _, AType _): {
     // if this is the question corresponding to the input, evaluate it
       if(input(x, val) := inp){
@@ -124,6 +125,8 @@ Value eval(AExpr e, VEnv venv) {
       if(rval == vint(0)){
         throw "Division by zero at <r.src>";
       }
+      //TODO: check if result is an integer, else throw error
+      
       return vint(lval/rval);
     }
     case add(AExpr l, AExpr r):{

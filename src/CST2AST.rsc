@@ -55,5 +55,10 @@ AExpr cst2ast(Expr e) {
 }
 
 AType cst2ast(Type t){
-  return typ("<t>", src=t@\loc);
+  switch(t){
+    case (Type)`integer`: return aint(src=t@\loc);
+    case (Type)`string`:  return astr(src=t@\loc);
+    case (Type)`boolean`: return abool(src=t@\loc);
+    default: throw "invalid type: <t>";
+  }
 }
