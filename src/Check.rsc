@@ -29,8 +29,9 @@ TEnv collect(AForm f) {
 }
 
 //check the form for type correctness and return error messages
-set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv, useDef) | i <- f.questions);
+set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv, useDef) | i <- f.questions, question(_,_,_) :=i || computedQuestion(_,_,_,_) :=i);
 
+//TODO: this does not yet work for ifThen, ifThenElse and block !!!! 
 //produces the following messages:
 // - error:   declared questions with the same name but different types.
 // - error:   the declared type of computed questions does not match the type of the expression.
