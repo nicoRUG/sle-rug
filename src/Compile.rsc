@@ -35,7 +35,7 @@ HTML5Node form2html(AForm f) {
            ),
            body(
              questionsAST,
-             script(\type("text/javascript"), src("<f.name>.js"))
+             script(\type("text/javascript"), src("<f.src[extension="js"].file>"))
            )
          );
          //div([question2html(q) | q <- f.questions])
@@ -47,18 +47,18 @@ HTML5Node question2html(AQuestion q){
     //TODO: write function that depending on type, returns the corresponding html node
     //TODO: refactor question and computed question
     //TODO implement ifThen/ifThenElse and make visible only if branch evaluates to true
-    case question        (AId id, str label, aint()):              return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>")));
-    case question        (AId id, str label, astr()):              return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
-    case question        (AId id, str label, abool()):             return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
-    case computedQuestion(AId id, str label, aint(), AExpr expr):  return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>"), readonly("true")));
-    case computedQuestion(AId id, str label, astr(), AExpr expr):  return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
+    case question        (AId id, str label, aint ()            ): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>")));
+    case question        (AId id, str label, astr ()            ): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
+    case question        (AId id, str label, abool()            ): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
+    case computedQuestion(AId id, str label, aint (), AExpr expr): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>"), readonly("true")));
+    case computedQuestion(AId id, str label, astr (), AExpr expr): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
     case computedQuestion(AId id, str label, abool(), AExpr expr): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
     case block(list[AQuestion] qs): return div([question2html(qu) |qu <- qs]);
     //TODO: make only one visible
     //TODO: find another way to implement this
-    //since there is no id, use location as id
-    case ifThen    (AExpr cond, AQuestion t, src = aux_id)             : return div(html5attr("v-if", "<aux_id>"), question2html(t));
-    case ifThenElse(AExpr cond, AQuestion t, AQuestion f): return div(question2html(t), question2html(f));
+    //since there is no id, use location offset to indentify ITE construct
+    case ifThen    (AExpr _, AQuestion t, src=x)             : return div(html5attr("v-if",  "_<x.offset>"), question2html(t));
+    case ifThenElse(AExpr _, AQuestion t, AQuestion f, src=x): return div(html5attr("v-if", "!_<x.offset>"), question2html(t), question2html(f));
     default: throw "could not match question <q>";
   }
 }
@@ -89,8 +89,26 @@ str defaultValue(AType t){
 
 //evaluate AEXpr to javascript string
 str expr2js(AExpr expr){
-  //TODO
-  return "//TODO";
+  switch(expr){
+    case ref(AId x): return "<x.name>";
+    case parenthesis(AExpr e):   return "(<expr2js(e)>)";
+    case not (AExpr e):          return "!<expr2js(e)>";
+    case mult(AExpr l, AExpr r): return "<expr2js(l)> * <expr2js(r)>";
+    case div (AExpr l, AExpr r): return "<expr2js(l)> // <expr2js(r)>";
+    case add (AExpr l, AExpr r): return "<expr2js(l)> + <expr2js(r)>";
+    case sub (AExpr l, AExpr r): return "<expr2js(l)> - <expr2js(r)>";
+    case lt  (AExpr l, AExpr r): return "<expr2js(l)> \< <expr2js(r)>";
+    case lte (AExpr l, AExpr r): return "<expr2js(l)> \<= <expr2js(r)>";
+    case gt  (AExpr l, AExpr r): return "<expr2js(l)> \> <expr2js(r)>";
+    case gte (AExpr l, AExpr r): return "<expr2js(l)> \>= <expr2js(r)>";
+    case eq  (AExpr l, AExpr r): return "<expr2js(l)> == <expr2js(r)>";
+    case neq (AExpr l, AExpr r): return "<expr2js(l)> != <expr2js(r)>";
+    case and (AExpr l, AExpr r): return "<expr2js(l)> && <expr2js(r)>";
+    case or  (AExpr l, AExpr r): return "<expr2js(l)> || <expr2js(r)>";
+    case string(str s):  return s;
+    case integer(int i): return "<i>";
+    case boolean(bool b):return "<b>"; 
+  }
 }
 
 //collect questions and produce data object for Vue
@@ -120,9 +138,15 @@ str jsComputedObject(AForm f){
           '  },
           '";
       //conditions map to functions that compute the condition
-      case ifThen(AExpr cond, AQuestion q, src aux_id): 
+      case ifThen(AExpr cond, _, src=x): 
         computed_content +=
-          "  <aux_id> : function(){
+          "  _<x.offset> : function(){
+          '    return <expr2js(cond)>
+          '  }
+          ";
+      case ifThenElse(AExpr cond, _, _, src=x): 
+        computed_content +=
+          "  _<x.offset> : function(){
           '    return <expr2js(cond)>
           '  }
           ";
