@@ -18,6 +18,7 @@ import lang::html5::DOM; // see standard library
  * - if needed, use the name analysis to link uses to definitions
  */
 
+//use VueJS as framework
 void compile(AForm f) {
   writeFile(f.src[extension="js"].top, form2js(f));
   writeFile(f.src[extension="html"].top, toString(form2html(f)));
@@ -25,38 +26,111 @@ void compile(AForm f) {
 
 HTML5Node form2html(AForm f) {
 //TODO: fix script string in
-  questions = div([question2html(x) | x <- f.questions]);
+  questionsAST = div([question2html(x) | x <- f.questions]);
 
-  return html(
+  htmlAST = html(
            head(
-             title("<f.name>")), 
+             title("<f.name>"),
+             script(\type("text/javascript"), src("vue.js"))
+           ),
            body(
-             div(
-               script(src("<f.name>.js")),
-               questions
-             )
+             questionsAST,
+             script(\type("text/javascript"), src("<f.name>.js"))
            )
-         );//div([question2html(q) | q <- f.questions])
+         );
+         //div([question2html(q) | q <- f.questions])
+  return htmlAST;
 }
 
 HTML5Node question2html(AQuestion q){
   switch(q){
     //TODO: write function that depending on type, returns the corresponding html node
-    //TODO implement computed question like question, but make read only
+    //TODO: refactor question and computed question
     //TODO implement ifThen/ifThenElse and make visible only if branch evaluates to true
-    case question        (AId id, str label, aint()):                return div(input(\type("number"),   \name("<id.name>")), "<label>");
-    case question        (AId id, str label, astr()):                return div(input(\type("text"),     \name("<id.name>")), "<label>");
-    case question        (AId id, str label, abool()):               return div(input(\type("checkbox"), \name("<id.name>")), "<label>");
-    //TODO: change
-    case computedQuestion(AId id, str label, AType typ, AExpr expr): return div(button("TODO"));
+    case question        (AId id, str label, aint()):              return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>")));
+    case question        (AId id, str label, astr()):              return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
+    case question        (AId id, str label, abool()):             return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
+    case computedQuestion(AId id, str label, aint(), AExpr expr):  return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>"), readonly("true")));
+    case computedQuestion(AId id, str label, astr(), AExpr expr):  return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
+    case computedQuestion(AId id, str label, abool(), AExpr expr): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
     case block(list[AQuestion] qs): return div([question2html(qu) |qu <- qs]);
     //TODO: make only one visible
-    case ifThen    (AExpr cond, AQuestion t)             : return div(question2html(t));
+    //TODO: find another way to implement this
+    //since there is no id, use location as id
+    case ifThen    (AExpr cond, AQuestion t, src = aux_id)             : return div(html5attr("v-if", "<aux_id>"), question2html(t));
     case ifThenElse(AExpr cond, AQuestion t, AQuestion f): return div(question2html(t), question2html(f));
     default: throw "could not match question <q>";
   }
 }
 
 str form2js(AForm f) {
-  return "";
+  //create Vue instance and assign data and computed attributes
+  return 
+    "<jsDataObject(f)>
+    '
+    '<jsComputedObject(f)>
+    '
+    'var vm = new Vue({
+    '  el: \"vue_form\",
+    '  data: data,
+    '  computed: computed,
+    '})";
+}
+
+//returns default string for AType
+str defaultValue(AType t){
+  switch(t){
+   //use 1 as default value for ints to prevent Divison by Zero Exceptions caused by default values
+   case aint() : return "1";
+   case astr() : return "\"\"";
+   case abool() : return "false";
+  }
+}
+
+//evaluate AEXpr to javascript string
+str expr2js(AExpr expr){
+  //TODO
+  return "//TODO";
+}
+
+//collect questions and produce data object for Vue
+str jsDataObject(AForm f){
+  data_content = "";
+  visit(f){
+      case question(AId id, str label, AType typ): 
+        data_content += "  <id.name> : <defaultValue(typ)>,\n";
+   }
+
+  str \data = 
+    "var data = {
+    '<data_content>}";
+    
+  return \data;
+}
+
+//collect computedQuestions and produce computed object for Vue
+str jsComputedObject(AForm f){
+  computed_content = "";
+  visit(f){
+      //computed questions map to computed functions
+      case computedQuestion(AId id, str label, AType typ, AExpr expr): 
+        computed_content += 
+          "  <id.name> : function(){
+          '    return <expr2js(expr)>
+          '  },
+          '";
+      //conditions map to functions that compute the condition
+      case ifThen(AExpr cond, AQuestion q, src aux_id): 
+        computed_content +=
+          "  <aux_id> : function(){
+          '    return <expr2js(cond)>
+          '  }
+          ";
+   }
+
+  str computed = 
+    "var computed = {
+    '<computed_content>}";
+    
+  return computed;
 }
