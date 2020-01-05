@@ -5,6 +5,8 @@ import Resolve;
 import IO;
 import lang::html5::DOM; // see standard library
 
+import String;
+
 /*
  * Implement a compiler for QL to HTML and Javascript
  *
@@ -34,7 +36,7 @@ HTML5Node form2html(AForm f) {
              script(\type("text/javascript"), src("vue.js"))
            ),
            body(
-             questionsAST,
+             div(id("vue_form"), questionsAST),
              script(\type("text/javascript"), src("<f.src[extension="js"].file>"))
            )
          );
@@ -58,7 +60,7 @@ HTML5Node question2html(AQuestion q){
     //TODO: find another way to implement this
     //since there is no id, use location offset to indentify ITE construct
     case ifThen    (AExpr _, AQuestion t, src=x)             : return div(html5attr("v-if",  "_<x.offset>"), question2html(t));
-    case ifThenElse(AExpr _, AQuestion t, AQuestion f, src=x): return div(html5attr("v-if", "!_<x.offset>"), question2html(t), question2html(f));
+    case ifThenElse(AExpr _, AQuestion t, AQuestion f, src=x): return div(div(html5attr("v-if", "_<x.offset>"), question2html(t)), div(html5attr("v-if", "!_<x.offset>"), question2html(f)));
     default: throw "could not match question <q>";
   }
 }
@@ -71,7 +73,7 @@ str form2js(AForm f) {
     '<jsComputedObject(f)>
     '
     'var vm = new Vue({
-    '  el: \"vue_form\",
+    '  el: \"#vue_form\",
     '  data: data,
     '  computed: computed,
     '})";
@@ -89,12 +91,15 @@ str defaultValue(AType t){
 
 //evaluate AEXpr to javascript string
 str expr2js(AExpr expr){
+  //currently division is integer division
+  //TODO: integer division VS only allowing divisions with integer result
+  //TODO: check and handle division by zero?
   switch(expr){
-    case ref(AId x): return "<x.name>";
+    case ref(AId x): return "data.<x.name>";
     case parenthesis(AExpr e):   return "(<expr2js(e)>)";
     case not (AExpr e):          return "!<expr2js(e)>";
     case mult(AExpr l, AExpr r): return "<expr2js(l)> * <expr2js(r)>";
-    case div (AExpr l, AExpr r): return "<expr2js(l)> // <expr2js(r)>";
+    case div (AExpr l, AExpr r): return "parseInt(<expr2js(l)> / <expr2js(r)>)";
     case add (AExpr l, AExpr r): return "<expr2js(l)> + <expr2js(r)>";
     case sub (AExpr l, AExpr r): return "<expr2js(l)> - <expr2js(r)>";
     case lt  (AExpr l, AExpr r): return "<expr2js(l)> \< <expr2js(r)>";
@@ -142,14 +147,14 @@ str jsComputedObject(AForm f){
         computed_content +=
           "  _<x.offset> : function(){
           '    return <expr2js(cond)>
-          '  }
-          ";
+          '  },
+          '";
       case ifThenElse(AExpr cond, _, _, src=x): 
         computed_content +=
           "  _<x.offset> : function(){
           '    return <expr2js(cond)>
-          '  }
-          ";
+          '  },
+          '";
    }
 
   str computed = 
