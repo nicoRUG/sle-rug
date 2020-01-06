@@ -20,6 +20,10 @@ import String;
  * - if needed, use the name analysis to link uses to definitions
  */
 
+//TODO: the toString method for html5node will write html attribute values as raw text as well in th "script" tag.
+// see l.361 of lang::thml5::DOM.rsc
+
+
 //use VueJS as framework
 void compile(AForm f) {
   writeFile(f.src[extension="js"].top, form2js(f));
@@ -27,7 +31,6 @@ void compile(AForm f) {
 }
 
 HTML5Node form2html(AForm f) {
-//TODO: fix script string in
   questionsAST = div([question2html(x) | x <- f.questions]);
 
   htmlAST = html(
@@ -40,7 +43,6 @@ HTML5Node form2html(AForm f) {
              script(\type("text/javascript"), src("<f.src[extension="js"].file>"))
            )
          );
-         //div([question2html(q) | q <- f.questions])
   return htmlAST;
 }
 
@@ -48,21 +50,36 @@ HTML5Node question2html(AQuestion q){
   switch(q){
     //TODO: write function that depending on type, returns the corresponding html node
     //TODO: refactor question and computed question
-    //TODO implement ifThen/ifThenElse and make visible only if branch evaluates to true
     case question        (AId id, str label, aint ()            ): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>")));
     case question        (AId id, str label, astr ()            ): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
     case question        (AId id, str label, abool()            ): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
-    case computedQuestion(AId id, str label, aint (), AExpr expr): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>"), readonly("true")));
-    case computedQuestion(AId id, str label, astr (), AExpr expr): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
-    case computedQuestion(AId id, str label, abool(), AExpr expr): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
+    case computedQuestion(AId id, str label, aint (), AExpr _   ): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>"), readonly("true")));
+    case computedQuestion(AId id, str label, astr (), AExpr _   ): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
+    case computedQuestion(AId id, str label, abool(), AExpr _   ): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
     case block(list[AQuestion] qs): return div([question2html(qu) |qu <- qs]);
-    //TODO: make only one visible
     //TODO: find another way to implement this
     //since there is no id, use location offset to indentify ITE construct
     case ifThen    (AExpr _, AQuestion t, src=x)             : return div(html5attr("v-if",  "_<x.offset>"), question2html(t));
     case ifThenElse(AExpr _, AQuestion t, AQuestion f, src=x): return div(div(html5attr("v-if", "_<x.offset>"), question2html(t)), div(html5attr("v-if", "!_<x.offset>"), question2html(f)));
     default: throw "could not match question <q>";
   }
+}
+
+
+str inputType(AType t){ 
+  return switch(t){
+    case aint (): "number";
+    case astr (): "text";
+    case abool(): "checkbox";
+  }
+}
+
+HTML5Node question2html(question(AId id, str label, AType t)){
+  return div(label, br(), input(\type(inputType(t))  , \name("<id.name>"), html5attr("v-model<t := aint()?".number">", "<id.name>")));
+}
+
+HTML5Node question2html(computedQuestion(AId id, str label, AType t, AExpr _)){
+  return div(label, br(), input(\type(inputType(t))  , \name("<id.name>"), html5attr("v-model<t := aint()?".number">", "<id.name>"), readonly("true")));
 }
 
 str form2js(AForm f) {
@@ -99,6 +116,7 @@ str expr2js(AExpr expr){
     case parenthesis(AExpr e):   return "(<expr2js(e)>)";
     case not (AExpr e):          return "!<expr2js(e)>";
     case mult(AExpr l, AExpr r): return "<expr2js(l)> * <expr2js(r)>";
+    //use integer division, since only integers are supported
     case div (AExpr l, AExpr r): return "parseInt(<expr2js(l)> / <expr2js(r)>)";
     case add (AExpr l, AExpr r): return "<expr2js(l)> + <expr2js(r)>";
     case sub (AExpr l, AExpr r): return "<expr2js(l)> - <expr2js(r)>";
@@ -119,30 +137,29 @@ str expr2js(AExpr expr){
 //collect questions and produce data object for Vue
 str jsDataObject(AForm f){
   data_content = "";
+  //TODO: can you use a deep match here as well?
   visit(f){
       case question(AId id, str label, AType typ): 
         data_content += "  <id.name> : <defaultValue(typ)>,\n";
    }
-
-  str \data = 
+        
+  return
     "var data = {
     '<data_content>}";
-    
-  return \data;
 }
 
 //collect computedQuestions and produce computed object for Vue
 str jsComputedObject(AForm f){
   computed_content = "";
   visit(f){
-      //computed questions map to computed functions
+      //QL computed questions map to JS computed functions
       case computedQuestion(AId id, str label, AType typ, AExpr expr): 
         computed_content += 
           "  <id.name> : function(){
           '    return <expr2js(expr)>
           '  },
           '";
-      //conditions map to functions that compute the condition
+      //QL conditions map to JS functions that compute the condition
       case ifThen(AExpr cond, _, src=x): 
         computed_content +=
           "  _<x.offset> : function(){
@@ -156,10 +173,8 @@ str jsComputedObject(AForm f){
           '  },
           '";
    }
-
-  str computed = 
+    
+  return
     "var computed = {
     '<computed_content>}";
-    
-  return computed;
 }
