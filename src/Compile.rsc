@@ -32,7 +32,8 @@ void compile(AForm f) {
 
 HTML5Node form2html(AForm f) {
   questionsAST = div([question2html(x) | x <- f.questions]);
-
+  
+  //html boilerplate
   htmlAST = html(
            head(
              title("<f.name>"),
@@ -48,38 +49,27 @@ HTML5Node form2html(AForm f) {
 
 HTML5Node question2html(AQuestion q){
   switch(q){
-    //TODO: write function that depending on type, returns the corresponding html node
-    //TODO: refactor question and computed question
-    case question        (AId id, str label, aint ()            ): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>")));
-    case question        (AId id, str label, astr ()            ): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
-    case question        (AId id, str label, abool()            ): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>")));
-    case computedQuestion(AId id, str label, aint (), AExpr _   ): return div(label, br(), input(\type("number")  , \name("<id.name>"), html5attr("v-model.number", "<id.name>"), readonly("true")));
-    case computedQuestion(AId id, str label, astr (), AExpr _   ): return div(label, br(), input(\type("text")    , \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
-    case computedQuestion(AId id, str label, abool(), AExpr _   ): return div(label, br(), input(\type("checkbox"), \name("<id.name>"), html5attr("v-model"       , "<id.name>"), readonly("true")));
+    case question        (AId id, str label, AType t         ): return div(label, br(),input(inputAttr(id, t)                   ));
+    case computedQuestion(AId id, str label, AType t, AExpr _): return div(label, br(),input(inputAttr(id, t) + readonly("true")));
     case block(list[AQuestion] qs): return div([question2html(qu) |qu <- qs]);
-    //TODO: find another way to implement this
     //since there is no id, use location offset to indentify ITE construct
-    case ifThen    (AExpr _, AQuestion t, src=x)             : return div(html5attr("v-if",  "_<x.offset>"), question2html(t));
+    case ifThen    (AExpr _, AQuestion t, src=x)             : return div(    html5attr("v-if", "_<x.offset>"), question2html(t));
     case ifThenElse(AExpr _, AQuestion t, AQuestion f, src=x): return div(div(html5attr("v-if", "_<x.offset>"), question2html(t)), div(html5attr("v-if", "!_<x.offset>"), question2html(f)));
     default: throw "could not match question <q>";
   }
 }
 
+//return list with attributes for the <input> tag
+list[value] inputAttr(AId id, AType t) =
+  [\type(mapInputType(t)), \name("<id.name>"), html5attr("v-model<t := aint()?".number":"">", "<id.name>")];
 
-str inputType(AType t){ 
-  return switch(t){
-    case aint (): "number";
-    case astr (): "text";
-    case abool(): "checkbox";
+//maps AType to the matching html input type attribute value
+str mapInputType(AType t){ 
+  switch(t){
+    case aint (): return "number";
+    case astr (): return "text";
+    case abool(): return "checkbox";
   }
-}
-
-HTML5Node question2html(question(AId id, str label, AType t)){
-  return div(label, br(), input(\type(inputType(t))  , \name("<id.name>"), html5attr("v-model<t := aint()?".number">", "<id.name>")));
-}
-
-HTML5Node question2html(computedQuestion(AId id, str label, AType t, AExpr _)){
-  return div(label, br(), input(\type(inputType(t))  , \name("<id.name>"), html5attr("v-model<t := aint()?".number">", "<id.name>"), readonly("true")));
 }
 
 str form2js(AForm f) {
@@ -108,8 +98,6 @@ str defaultValue(AType t){
 
 //evaluate AEXpr to javascript string
 str expr2js(AExpr expr){
-  //currently division is integer division
-  //TODO: integer division VS only allowing divisions with integer result
   //TODO: check and handle division by zero?
   switch(expr){
     case ref(AId x): return "data.<x.name>";
@@ -152,8 +140,8 @@ str jsDataObject(AForm f){
 str jsComputedObject(AForm f){
   computed_content = "";
   visit(f){
-      //QL computed questions map to JS computed functions
       case computedQuestion(AId id, str label, AType typ, AExpr expr): 
+      //QL computed questions map to JS computed functions
         computed_content += 
           "  <id.name> : function(){
           '    return <expr2js(expr)>
