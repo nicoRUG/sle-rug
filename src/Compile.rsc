@@ -7,6 +7,8 @@ import lang::html5::DOM; // see standard library
 
 import String;
 
+//TODO: code revision
+
 /*
  * Implement a compiler for QL to HTML and Javascript
  *
@@ -22,21 +24,11 @@ import String;
 
 // to avoid generating code that contains keywords, prepend a "js_" to every js variable and function and "html_" for html name attributes
 
-//TODO: the toString method for html5node will write html attribute values as raw text as well in th "script" tag.
-// see l.361 of lang::thml5::DOM.rsc
-
 
 //use VueJS as framework
 void compile(AForm f) {
   writeFile(f.src[extension="js"].top, form2js(f));
-  html_str = toString(form2html(f));
-  
-  //TODO: remove when script tag problem is properly fixed
-  html_str = replaceAll(html_str,"html5attr(\"type\",\"text/javascript\")"              , "");
-  html_str = replaceAll(html_str,"html5attr(\"src\",\"vue.js\")"                       , "");
-  html_str = replaceAll(html_str,"html5attr(\"type\",\"<f.src[extension="js"].file>\")" , "");
-  
-  writeFile(f.src[extension="html"].top, html_str);
+  writeFile(f.src[extension="html"].top, toString(form2html(f)));
 }
 
 HTML5Node form2html(AForm f) {
