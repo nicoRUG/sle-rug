@@ -107,10 +107,20 @@ Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
 }
  
  Type mapTypes(AType t){
-   switch(t){
+   return switch(t){
      case aint() : return tint();
      case astr() : return tstr();
      case abool(): return tbool();
      default : return tunknown();
    }
+ }
+ 
+ //is this applied automatically, when using the string interpolation? "< >"
+ str toString(Type t){
+  return switch(t){
+     case tint    (): return "integer";
+     case tstr    (): return "string";
+     case tbool   (): return "boolean";
+     case tunknown(): return "unknown";
+  }
  }
