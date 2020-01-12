@@ -22,8 +22,8 @@ alias TEnv = rel[loc def, str name, str label, Type \type];
 TEnv collect(AForm f) {
   c = {};
   visit(f){
-    case question        (AId x, str label, AType t):             c += <x.src, "<x.name>", label, matchTypes(t)>;
-    case computedQuestion(AId x, str label, AType t, AExpr expr): c += <x.src, "<x.name>", label, matchTypes(t)>;
+    case question        (AId x, str label, AType t):          c += <x.src, "<x.name>", label, mapTypes(t)>;
+    case computedQuestion(AId x, str label, AType t, AExpr _): c += <x.src, "<x.name>", label, mapTypes(t)>;
   }
   return c; 
 }
@@ -39,16 +39,16 @@ set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv
 set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
 //TODO: check and possibly refactor/improve readability of this function
   m = {};
-  for(e <- tenv<name,\type, label>){
-    if (("<q.id>" == e.name) && (matchTypes(q.typ) != e.\type)){
-      m += error("multiple questions with same name but different type", q.src);
+  for(e <- tenv){
+    if (("<q.id>" == e.name) && (mapTypes(q.typ) != e.\type)){
+      m += error("same name, but different type as <e.def>", q.src);
     }
     if (q.label == e.label && "<q.id.name>" != e.name){
-      m += warning("duplicate labels", q.src);
+      m += warning("duplicate labels with <e.def>", q.src);
     }
   }
-  if (computedQuestion(_,_,_,_) := q && (typeOf(q.expr, tenv, useDef) != matchTypes(q.typ))){
-      m += error("types dont match: TypeOf: <typeOf(q.expr, tenv, useDef)>,  q.typ: <matchTypes(q.typ)>", q.src);
+  if (computedQuestion(_,_,_,_) := q && (typeOf(q.expr, tenv, useDef) != mapTypes(q.typ))){
+      m += error("types dont match! declared type: \"<mapTypes(q.typ)>\", evaluates to: <typeOf(q.expr, tenv, useDef)>", q.src);
   }
   return m; 
 }
@@ -106,7 +106,7 @@ Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
   return tunknown(); 
 }
  
- Type matchTypes(AType t){
+ Type mapTypes(AType t){
    switch(t){
      case aint() : return tint();
      case astr() : return tstr();
