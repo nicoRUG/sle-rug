@@ -31,6 +31,8 @@ extend lang::std::Id;
  */
  
 AForm flatten(AForm f) {
+
+
   return f; 
 }
 
@@ -42,21 +44,24 @@ AForm flatten(AForm f) {
  */
  
  
- start[Form] rename(start[Form] f, loc useOrDef, str newName, RefGraph refs) { 
+ //rename refactoring of names (variables)
+ //does not preserve layout
+ start[Form] rename(start[Form] f, loc useOrDef, str newName, RefGraph refs) {
    Id newId = [Id]newName;
 
    return visit(f){
      case (Question) `<Str l><Id x>:<Type t>`
-       => (Question) `<Str l><Id newId>:<Type t>`
+       => (Question) `<Str l> <Id newId>: <Type t>`
        when   
          //(another) definition of the variable is renamed
          (<old, useOrDef> <- refs.defs &&
           <old, x@\loc>   in refs.defs) ||
          //or a use of the variable is renamed
          <useOrDef, x@\loc> in refs.useDef
+         //note: since there can be definitions without uses, we cant use the useDef graph
          
      case (Question) `<Str l><Id x>:<Type t>=<Expr expr>`
-       => (Question) `<Str l><Id newId>:<Type t>=<Expr expr>`
+       => (Question) `<Str l> <Id newId> :<Type t> = <Expr expr>`
        when
          //a definition of the same variable is renamed
          (<old, useOrDef> <- refs.defs &&
@@ -74,7 +79,3 @@ AForm flatten(AForm f) {
           <x@\loc, def>   in refs.useDef)
    }
  }
- 
- 
- 
-
