@@ -29,12 +29,37 @@ extend lang::std::Id;
  * Write a transformation that performs this flattening transformation.
  *
  */
- 
+
 AForm flatten(AForm f) {
-
-
+  //TODO: refactor
+  //TODO: flatten out blocks
+  //create ifThen for every (computed)question
+  f.questions = [flattenAux(q, boolean(true)) | q <- f.questions];
+  //flatten all blocks
+  f.questions = ([] | it + flattenBlocks(q) | q <- f.questions);
   return f; 
 }
+
+//TODO: put flatten blocks directly in this function?
+AQuestion flattenAux(AQuestion q, AExpr conds){
+//TODO; test/check
+  switch(q){
+    //recursively apply the flatten method on the statement and AND the condition with the conditions given by the parameter
+    case ifThen    (AExpr cond, AQuestion ifTrue)                   : return        flattenAux(ifTrue, and(conds, cond))                                              ;
+    //the same as ifThen, but also flatten for the false statement and negate the condition there
+    case ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse): return block([flattenAux(ifTrue, and(conds, cond)), flattenAux(ifFalse, and(conds, not(cond)))]);
+    //recursively apply method for all childs, block structures will be flattened out in the end
+    case block(list[AQuestion] questions): return block([flattenAux(qs, conds) | qs <- questions]); //TODO: flatten block afterwards
+    //default case: (computed)questions form the base cases of the recusion, they are returned with an ifThen, containing all applying conditions
+    default: return ifThen(conds, q, src=q.src);
+    //note: quick&dirty fix: src location is used to identify ifThen in Compile -> use same location as the question
+  }
+}
+
+list[AQuestion] flattenBlocks(block(list[AQuestion] qList)) = ([] | it + flattenBlocks(q) | q <- qList);
+
+list[AQuestion] flattenBlocks(AQuestion q) = [q];
+
 
 /* Rename refactoring:
  *
