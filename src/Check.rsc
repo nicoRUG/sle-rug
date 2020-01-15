@@ -8,6 +8,8 @@ import Message; // see standard library
  * Type Checker for QL
  */
 
+//TODO: is resolve/useDef necessary here? or can it be deleted everywhere it appears
+
 data Type
   = tint()
   | tbool()
@@ -29,7 +31,7 @@ TEnv collect(AForm f) {
 }
 
 //check the form for type correctness and return error messages
-set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv, useDef) | i <- f.questions, question(_,_,_) :=i || computedQuestion(_,_,_,_) :=i);
+set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv, useDef) | i <- f.questions);
 
 //TODO: this does not yet work for ifThen, ifThenElse and block !!!! 
 //produces the following messages:
@@ -38,25 +40,77 @@ set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv
 // - warning: duplicate labels
 set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
 //TODO: check and possibly refactor/improve readability of this function
+  switch(q){
+    case block(list[AQuestion] questions): return ({} | check(i, tenv, useDef) + it | i <- questions);
+    case ifThen(AExpr cond, AQuestion ifTrue): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef);
+    case ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef) + check(ifFalse, tenv, useDef);    
+    case question(AId id, str _, AType typ): 
+      return checkTypes(q, tenv)
+           + checkDuplicateLabels(q, tenv);
+    case computedQuestion(AId id, str _, AType typ, AExpr expr): 
+      return checkTypes(q, tenv)
+           + checkDeclaredType(q, tenv, useDef)
+           + checkDuplicateLabels(q, tenv);
+    default: throw "could not match <q>";
+      
+    /*
+      for(e <- tenv){
+        
+      
+        if (("<id.name>" == e.name) && (mapTypes(typ) != e.\type)){
+          m += error("same name, but different type as <e.def>", q.src);
+        }
+      if (q.label == e.label && "<q.id.name>" != e.name){
+        m += warning("duplicate labels with <e.def>", q.src);
+      }
+    }
+    if (computedQuestion(_,_,_,_) := q && (typeOf(q.expr, tenv, useDef) != mapTypes(q.typ))){
+      m += error("types dont match! declared type: \"<mapTypes(q.typ)>\", evaluates to: <typeOf(q.expr, tenv, useDef)>", q.src);
+    }
+    */
+   
+  }
+}
+
+// - error:   declared questions with the same name but different types.
+set[Message] checkTypes(AQuestion q, TEnv tenv){
+  assert(question(_,_,_) := q || computedQuestion(_,_,_,_) := q);
   m = {};
   for(e <- tenv){
-    if (("<q.id>" == e.name) && (mapTypes(q.typ) != e.\type)){
-      m += error("same name, but different type as <e.def>", q.src);
-    }
-    if (q.label == e.label && "<q.id.name>" != e.name){
-      m += warning("duplicate labels with <e.def>", q.src);
+    if (("<q.id.name>" == e.name) && (mapTypes(q.typ) != e.\type)){
+          m += error("same name, but different type as <e.def>", q.src);
     }
   }
-  if (computedQuestion(_,_,_,_) := q && (typeOf(q.expr, tenv, useDef) != mapTypes(q.typ))){
-      m += error("types dont match! declared type: \"<mapTypes(q.typ)>\", evaluates to: <typeOf(q.expr, tenv, useDef)>", q.src);
-  }
-  return m; 
+  return m;
 }
+
+// - error:   the declared type of computed questions does not match the type of the expression.
+set[Message] checkDeclaredType(q, TEnv tenv, UseDef useDef){
+  assert(computedQuestion(_,_,_,_) := q);
+  if(typeOf(q.expr, tenv, useDef) != mapTypes(q.typ)){
+    return {error("types dont match! declared type: \"<mapTypes(q.typ)>\", evaluates to: <typeOf(q.expr, tenv, useDef)>", q.src)};
+  }
+  return {};
+}
+
+// - warning: duplicate labels
+set[Message] checkDuplicateLabels(AQuestion q, TEnv tenv){
+  assert(question(_,_,_) := q || computedQuestion(_,_,_,_) := q);
+  m = {};
+  for(e <- tenv){
+    if (q.label == e.label && "<q.id.name>" != e.name){
+        m += warning("duplicate labels with <e.def>", q.src);
+      }
+  }
+  return m;
+}
+
 
 // Check operand compatibility with operators
 set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
   set[Message] msgs = {};
   //TODO: add location information and improve error messages
+  //TODO: refactor
   switch (e) {
     case ref(AId x): msgs += { error("Undeclared question", x.src) | useDef[x.src] == {} };
     case not (AExpr expr,       src = loc u): if (typeOf(expr, tenv, useDef) != tbool())  msgs += error("not requires boolean", u);
@@ -77,7 +131,7 @@ set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
 }
 
 bool haveType(Type t, AExpr l, AExpr r, TEnv tenv, UseDef useDef) =
-  (typeOf(l, tenv, useDef) == t  && typeOf(r, tenv, useDef) == t);
+  (t :=typeOf(l, tenv, useDef) && t := typeOf(r, tenv, useDef));
 
 Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
   switch (e) {
