@@ -8,8 +8,6 @@ import Message; // see standard library
  * Type Checker for QL
  */
 
-//TODO: is resolve/useDef necessary here? or can it be deleted everywhere it appears
-
 data Type
   = tint()
   | tbool()
@@ -33,42 +31,18 @@ TEnv collect(AForm f) {
 //check the form for type correctness and return error messages
 set[Message] check(AForm f, TEnv tenv, UseDef useDef) = ({} | it + check(i, tenv, useDef) | i <- f.questions);
 
-//TODO: this does not yet work for ifThen, ifThenElse and block !!!! 
 //produces the following messages:
 // - error:   declared questions with the same name but different types.
 // - error:   the declared type of computed questions does not match the type of the expression.
 // - warning: duplicate labels
 set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
-//TODO: check and possibly refactor/improve readability of this function
   switch(q){
     case block(list[AQuestion] questions): return ({} | check(i, tenv, useDef) + it | i <- questions);
-    case ifThen(AExpr cond, AQuestion ifTrue): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef);
+    case ifThen    (AExpr cond, AQuestion ifTrue                   ): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef                               );
     case ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef) + check(ifFalse, tenv, useDef);    
-    case question(AId id, str _, AType typ): 
-      return checkTypes(q, tenv)
-           + checkDuplicateLabels(q, tenv);
-    case computedQuestion(AId id, str _, AType typ, AExpr expr): 
-      return checkTypes(q, tenv)
-           + checkDeclaredType(q, tenv, useDef)
-           + checkDuplicateLabels(q, tenv);
+    case question        (AId id, str _, AType typ            ): return checkTypes(q, tenv) + checkDuplicateLabels(q, tenv)                                     ;
+    case computedQuestion(AId id, str _, AType typ, AExpr expr): return checkTypes(q, tenv) + checkDuplicateLabels(q, tenv) + checkDeclaredType(q, tenv, useDef);
     default: throw "could not match <q>";
-      
-    /*
-      for(e <- tenv){
-        
-      
-        if (("<id.name>" == e.name) && (mapTypes(typ) != e.\type)){
-          m += error("same name, but different type as <e.def>", q.src);
-        }
-      if (q.label == e.label && "<q.id.name>" != e.name){
-        m += warning("duplicate labels with <e.def>", q.src);
-      }
-    }
-    if (computedQuestion(_,_,_,_) := q && (typeOf(q.expr, tenv, useDef) != mapTypes(q.typ))){
-      m += error("types dont match! declared type: \"<mapTypes(q.typ)>\", evaluates to: <typeOf(q.expr, tenv, useDef)>", q.src);
-    }
-    */
-   
   }
 }
 
@@ -109,8 +83,6 @@ set[Message] checkDuplicateLabels(AQuestion q, TEnv tenv){
 // Check operand compatibility with operators
 set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
   set[Message] msgs = {};
-  //TODO: add location information and improve error messages
-  //TODO: refactor
   switch (e) {
     case ref(AId x): msgs += { error("Undeclared question", x.src) | useDef[x.src] == {} };
     case not (AExpr expr,       src = loc u): if (typeOf(expr, tenv, useDef) != tbool())  msgs += error("not requires boolean", u);
@@ -169,7 +141,6 @@ Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
    }
  }
  
- //is this applied automatically, when using the string interpolation? "< >"
  str toString(Type t){
   return switch(t){
      case tint    (): return "integer";
