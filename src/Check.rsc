@@ -41,7 +41,7 @@ set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
     case ifThen    (AExpr cond, AQuestion ifTrue                   ): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef                               );
     case ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse): return check(cond, tenv, useDef) + check(ifTrue, tenv, useDef) + check(ifFalse, tenv, useDef);    
     case question        (AId id, str _, AType typ            ): return checkTypes(q, tenv) + checkDuplicateLabels(q, tenv)                                     ;
-    case computedQuestion(AId id, str _, AType typ, AExpr expr): return checkTypes(q, tenv) + checkDuplicateLabels(q, tenv) + checkDeclaredType(q, tenv, useDef);
+    case computedQuestion(AId id, str _, AType typ, AExpr expr): return checkTypes(q, tenv) + checkDuplicateLabels(q, tenv) + checkDeclaredType(q, tenv, useDef) + check(expr, tenv, useDef);
     default: throw "could not match <q>";
   }
 }
@@ -62,7 +62,7 @@ set[Message] checkTypes(AQuestion q, TEnv tenv){
 set[Message] checkDeclaredType(q, TEnv tenv, UseDef useDef){
   assert(computedQuestion(_,_,_,_) := q);
   if(typeOf(q.expr, tenv, useDef) != mapTypes(q.typ)){
-    return {error("types dont match! declared type: \"<mapTypes(q.typ)>\", evaluates to: <typeOf(q.expr, tenv, useDef)>", q.src)};
+    return {error("types dont match! declared type <toString(q.typ)> evaluates to <toString(typeOf(q.expr, tenv, useDef))>", q.src)};
   }
   return {};
 }
@@ -85,19 +85,19 @@ set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
   set[Message] msgs = {};
   switch (e) {
     case ref(AId x): msgs += { error("Undeclared question", x.src) | useDef[x.src] == {} };
-    case not (AExpr expr,       src = loc u): if (typeOf(expr, tenv, useDef) != tbool())  msgs += error("not requires boolean", u);
-    case mult(AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("mult requires int", u);
-    case div (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("div requires int", u);
-    case add (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("add requires int", u);
-    case sub (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("sub requires int", u);
-    case lt  (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("lt requires int", u);
-    case lte (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("lte requires int", u);
-    case gt  (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("gt requires int", u);
-    case gte (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("gte requires int", u);
-    case eq  (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("eq requires int", u);
-    case neq (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("neq requires int", u);
-    case and (AExpr l, AExpr r, src = loc u): if (!haveType(tbool(), l, r, tenv, useDef)) msgs += error("and requires bool", u);
-    case or  (AExpr l, AExpr r, src = loc u): if (!haveType(tbool(), l, r, tenv, useDef)) msgs += error("sub requires bool", u);
+    case not (AExpr expr,       src = loc u): if (typeOf(expr, tenv, useDef) != tbool())  msgs += error("operator ! requires boolean", u);
+    case mult(AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator * requires integer", u);
+    case div (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator / requires integer", u);
+    case add (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator + requires integer", u);
+    case sub (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator - requires integer", u);
+    case lt  (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator \< requires integer", u);
+    case lte (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator \<= requires integer", u);
+    case gt  (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator \> requires integer", u);
+    case gte (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator \>= requires integer", u);
+    case eq  (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator == requires integer", u);
+    case neq (AExpr l, AExpr r, src = loc u): if (!haveType(tint (), l, r, tenv, useDef)) msgs += error("operator != requires integer", u);
+    case and (AExpr l, AExpr r, src = loc u): if (!haveType(tbool(), l, r, tenv, useDef)) msgs += error("operator && requires boolean", u);
+    case or  (AExpr l, AExpr r, src = loc u): if (!haveType(tbool(), l, r, tenv, useDef)) msgs += error("operator || requires boolean", u);
   }
   return msgs; 
 }
