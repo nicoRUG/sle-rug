@@ -7,8 +7,6 @@ import lang::html5::DOM; // see standard library
 
 import String;
 
-//TODO: code revision
-
 /*
  * Implement a compiler for QL to HTML and Javascript
  *
@@ -23,7 +21,6 @@ import String;
  */
 
 // to avoid generating code that contains keywords, prepend a "js_" to every js variable and function and "html_" for html name attributes
-
 
 //use VueJS as framework
 void compile(AForm f) {
@@ -102,36 +99,35 @@ str expr2js(AExpr expr){
   switch(expr){
     case ref(AId x): return "data.js_<x.name>";
     case parenthesis(AExpr e):   return "(<expr2js(e)>)";
-    case not (AExpr e):          return "!<expr2js(e)>";
-    case mult(AExpr l, AExpr r): return "<expr2js(l)> * <expr2js(r)>";
+    case not (AExpr e):          return "(!<expr2js(e)>)";
+    case mult(AExpr l, AExpr r): return "(<expr2js(l)> * <expr2js(r)>)";
     //use integer division, since only integers are supported
     //division by zero is not explicetly handled since it doesnt throw an error
-    case div (AExpr l, AExpr r): return "parseInt(<expr2js(l)> / <expr2js(r)>)";
-    case add (AExpr l, AExpr r): return "<expr2js(l)> + <expr2js(r)>";
-    case sub (AExpr l, AExpr r): return "<expr2js(l)> - <expr2js(r)>";
-    case lt  (AExpr l, AExpr r): return "<expr2js(l)> \< <expr2js(r)>";
-    case lte (AExpr l, AExpr r): return "<expr2js(l)> \<= <expr2js(r)>";
-    case gt  (AExpr l, AExpr r): return "<expr2js(l)> \> <expr2js(r)>";
-    case gte (AExpr l, AExpr r): return "<expr2js(l)> \>= <expr2js(r)>";
-    case eq  (AExpr l, AExpr r): return "<expr2js(l)> == <expr2js(r)>";
-    case neq (AExpr l, AExpr r): return "<expr2js(l)> != <expr2js(r)>";
-    case and (AExpr l, AExpr r): return "<expr2js(l)> && <expr2js(r)>";
-    case or  (AExpr l, AExpr r): return "<expr2js(l)> || <expr2js(r)>";
-    case string(str s):  return "\"<s>\"";
-    case integer(int i): return "<i>";
-    case boolean(bool b):return "<b>"; 
+    case div (AExpr l, AExpr r): return "(parseInt(<expr2js(l)> / <expr2js(r)>)";
+    case add (AExpr l, AExpr r): return "(<expr2js(l)> + <expr2js(r)>)";
+    case sub (AExpr l, AExpr r): return "(<expr2js(l)> - <expr2js(r)>)";
+    case lt  (AExpr l, AExpr r): return "(<expr2js(l)> \< <expr2js(r)>)";
+    case lte (AExpr l, AExpr r): return "(<expr2js(l)> \<= <expr2js(r)>)";
+    case gt  (AExpr l, AExpr r): return "(<expr2js(l)> \> <expr2js(r)>)";
+    case gte (AExpr l, AExpr r): return "(<expr2js(l)> \>= <expr2js(r)>)";
+    case eq  (AExpr l, AExpr r): return "(<expr2js(l)> == <expr2js(r)>)";
+    case neq (AExpr l, AExpr r): return "(<expr2js(l)> != <expr2js(r)>)";
+    case and (AExpr l, AExpr r): return "(<expr2js(l)> && <expr2js(r)>)";
+    case or  (AExpr l, AExpr r): return "(<expr2js(l)> || <expr2js(r)>)";
+    case string(str s):  return "(\"<s>\")";
+    case integer(int i): return "(<i>)";
+    case boolean(bool b):return "(<b>)"; 
   }
 }
 
 //collect questions and produce data object for Vue
 str jsDataObject(AForm f){
   data_content = "";
-  //TODO: can you use a deep match here as well?
   visit(f){
       case question(AId id, str label, AType typ): 
         data_content += "  js_<id.name> : <defaultValue(typ)>,\n";
-   }
-        
+   }  
+   
   return
     "var data = {
     '<data_content>}";
