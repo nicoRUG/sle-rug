@@ -3,6 +3,9 @@ module Eval
 import AST;
 import Resolve;
 
+import IO;
+
+
 /*
  * Implement big-step semantics for QL
  */
@@ -29,7 +32,7 @@ data Input
 VEnv initialEnv(AForm f) {
   //initialise environment with default values
   VEnv venv = ();
-  for(q <- f.questions){ //TODO: do we need this for loop?
+  for(q <- f.questions){
     visit(q){
       case question(AId x, str _, AType t) : venv += (x.name:defaultValue(t));
       case computedQuestion(AId x, str _, AType t, AExpr _) : venv += (x.name:defaultValue(t)); 
@@ -58,41 +61,47 @@ VEnv eval(AForm f, Input inp, VEnv venv) {
 }
 
 VEnv evalOnce(AForm f, Input inp, VEnv venv) {
-  //input is single input for one question, right??? (TODO: clear this)
+  //input is single input for one question
   //note that the environment will only be updated AFTER each question was evaluated
-  return (venv | it + eval(q, inp, venv) | q <- f.questions);
+  for(q <- f.questions){
+    venv += eval(q, inp, venv);
+  }
+  return venv;
 }
-
-//passed tests:
 
 VEnv eval(AQuestion q, Input inp, VEnv venv) {
   // evaluate conditions for branching,
   // evaluate inp and computed questions to return updated VEnv
   switch(q){
-    
-    //TODO: use x.name
+  
     case question(id(str x), str _, AType _): {
     // if this is the question corresponding to the input, evaluate it
-      if(input(x, val) := inp){
-        return venv + (x:val);  //TODO: this could be one level higher as well
+      if(x := inp.question){
+        return venv + (x:inp.\value);
       }
       return venv;
     }
     
-    case computedQuestion(id(str x), str _, AType _, AExpr expr) : return venv + (x:eval(expr, venv));
+    case computedQuestion(AId x, str _, AType _, AExpr expr) : return venv + (x.name:eval(expr, venv));
     
-    case block(list[AQuestion] questions): return (() | it + eval(q, inp, venv) | q <-questions);
+    case block(list[AQuestion] questions): {
+      venv_ = venv;
+      for (qs <- questions)
+        {venv_ += eval(qs, inp, venv_);
+      } 
+      return venv_;
+    }
     
-    case ifThenElse(AExpr cond, AQustion ifTrue, AQuestion ifFalse):{
-      if(eval(cond) == vbool(true)){
+    case ifThenElse(AExpr cond, AQuestion ifTrue, AQuestion ifFalse):{
+      if(eval(cond, venv) == vbool(true)){
         return venv + eval(ifTrue, inp, venv);
       }else{
         return venv + eval(ifFalse, inp, venv);
       }
     }
     
-    case ifThen(AExpr cond, AQustion ifTrue):{
-      if(eval(cond) == vbool(true)){
+    case ifThen(AExpr cond, AQuestion ifTrue):{
+      if(eval(cond, venv) == vbool(true)){
         return venv + eval(ifTrue, inp, venv);
       }
       return venv;
@@ -102,14 +111,12 @@ VEnv eval(AQuestion q, Input inp, VEnv venv) {
   }
 }
 
-//TODO: refactor code if possible
 //evaluate values and nested expressions
 Value eval(AExpr e, VEnv venv) {
   switch (e) {
     case ref(id(str x)): return venv[x];
     case parenthesis(AExpr expr): return eval(expr, venv);
     case not(AExpr expr) : {
-      //TODO for all coming cases: how to correctly access val??
       vbool(val) = eval(expr, venv);
       return vbool(!val);
     }
@@ -125,8 +132,7 @@ Value eval(AExpr e, VEnv venv) {
       if(rval == vint(0)){
         throw "Division by zero at <r.src>";
       }
-      //TODO: check if result is an integer, else throw error
-      
+      //does integer division
       return vint(lval/rval);
     }
     case add(AExpr l, AExpr r):{
