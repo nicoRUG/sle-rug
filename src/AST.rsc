@@ -40,9 +40,17 @@ data AExpr(loc src = |tmp:///|)
 data AId(loc src = |tmp:///|)
   = id(str name);
 
-//TODO: check if this has to be changed to integer() | string() | boolean()
 data AType(loc src = |tmp:///|)
   = aint()
   | astr()
   | abool()
   ;
+  
+  str toString(AType t){
+  return switch(t){
+     case aint    (): return "integer";
+     case astr    (): return "string";
+     case abool   (): return "boolean";
+  }  
+  
+ }
